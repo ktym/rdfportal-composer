@@ -1,0 +1,431 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>RDF Portal — SPARQL Composer</title>
+  <style>
+    :root {
+      --bg: #0f172a;          /* slate-900 */
+      --card: #111827;        /* gray-900 */
+      --muted: #334155;       /* slate-600 */
+      --border: #1f2937;      /* gray-800 */
+      --text: #e5e7eb;        /* gray-200 */
+      --accent: #22d3ee;      /* cyan-400 */
+      --accent-2: #60a5fa;    /* blue-400 */
+      --danger: #f87171;      /* red-400 */
+      --ok: #34d399;          /* emerald-400 */
+      --shadow: 0 6px 24px rgba(0,0,0,.25), 0 2px 8px rgba(0,0,0,.18);
+      --radius: 16px;
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      background: radial-gradient(1200px 800px at 20% -10%, #0b1222 0%, var(--bg) 60%) no-repeat;
+      color: var(--text);
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      line-height: 1.45;
+      letter-spacing: .2px;
+    }
+    .wrap {
+      max-width: 1100px;
+      margin: 40px auto;
+      padding: 0 20px;
+    }
+    header {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 24px; margin-bottom: 20px;
+    }
+    header h1 {
+      font-size: clamp(20px, 2.6vw, 28px);
+      margin: 0;
+      font-weight: 700;
+      letter-spacing: .3px;
+      background: linear-gradient(90deg, var(--accent), var(--accent-2));
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+    header p { margin: 0; color: #94a3b8; font-size: 14px; }
+    .grid {
+      display: grid;
+      grid-template-columns: 1.1fr .9fr;
+      gap: 18px;
+    }
+    @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+    .card {
+      background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: clip;
+    }
+    .card h2 {
+      margin: 0; padding: 14px 16px;
+      font-size: 14px; letter-spacing: .4px; text-transform: uppercase;
+      color: #cbd5e1;
+      border-bottom: 1px solid var(--border);
+      background: rgba(255,255,255,.02);
+    }
+    .card .content { padding: 16px; }
+    label { font-size: 13px; color: #cbd5e1; display: block; margin-bottom: 6px; }
+    select, input[type="text"] {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: #0b1222;
+      color: var(--text);
+      outline: none;
+    }
+    select:focus, input[type="text"]:focus { border-color: #334155; box-shadow: 0 0 0 3px rgba(96,165,250,.15); }
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr auto;
+      gap: 10px;
+      align-items: end;
+    }
+    .rows { display: grid; gap: 10px; }
+    .hint { color: #94a3b8; font-size: 12px; margin-top: 6px; }
+    .toolbar {
+      display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+      margin-top: 14px;
+    }
+    button {
+      appearance: none; border: 1px solid var(--border); color: var(--text);
+      background: #0b1222; padding: 10px 14px; border-radius: 999px; cursor: pointer;
+      font-weight: 600;
+      transition: transform .04s ease-in-out, border-color .15s, box-shadow .15s, background .15s;
+    }
+    button:hover { border-color: #334155; box-shadow: 0 0 0 3px rgba(34,211,238,.12); }
+    button:active { transform: translateY(1px); }
+    .btn-primary {
+      background: linear-gradient(90deg, var(--accent), var(--accent-2));
+      color: #0b1222; border: none;
+    }
+    .btn-ghost { background: transparent; }
+    .btn-add {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: #0b1222;
+    }
+    .btn-add svg { display: block; }
+    .api-url {
+      margin-top: 10px; font-size: 13px; color: #a5b4fc;
+      word-break: break-all;
+    }
+    .results {
+      min-height: 200px;
+      background: #0b1222;
+      border: 1px dashed #334155;
+      border-radius: 12px;
+      padding: 12px;
+      overflow: auto;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+      font-size: 13px;
+      white-space: pre-wrap;
+    }
+    .status {
+      margin-top: 10px; font-size: 13px;
+    }
+    .status.ok { color: var(--ok); }
+    .status.err { color: var(--danger); }
+    .image-box {
+      display: grid; gap: 10px;
+    }
+    .image-frame {
+      background: #0b1222;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      display: grid; place-items: center;
+      min-height: 280px;
+    }
+    .image-frame img {
+      width: 100%; height: 100%; object-fit: contain;
+      background: #0b1222;
+    }
+    .caption { color: #94a3b8; font-size: 12px; text-align: center; }
+    .footer-note {
+      margin-top: 22px; color: #94a3b8; font-size: 12px;
+    }
+    .pill {
+      display: inline-block; padding: 4px 8px; border-radius: 999px; font-size: 11px;
+      background: rgba(34,211,238,.15); color: #67e8f9; border: 1px solid rgba(34,211,238,.25);
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div>
+        <h1>SPARQL Composer</h1>
+        <p>Powered by <a href="https://github.com/dbcls/rdf-config/"><span class="pill">RDF-config</span></a>
+      </div>
+      <a href="https://rdfportal.org/">
+        <img class="logotype" src="/images/logotype-white.svg" width="50">
+      </a>
+    </header>
+
+    <div class="grid">
+      <!-- Left: Controls -->
+      <section class="card">
+        <h2>Compose</h2>
+        <div class="content">
+          <div class="field">
+            <label for="dataset">Dataset</label>
+            <select id="dataset"></select>
+          </div>
+
+          <div class="field" style="margin-top:14px;">
+            <div id="rows" class="rows"></div>
+            <div class="toolbar">
+              <button id="addRow" class="btn-add" type="button" title="Add variable">
+                <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+                  <circle cx="12" cy="12" r="10" fill="none" stroke="#22d3ee" stroke-width="2"></circle>
+                  <path d="M12 7v10M7 12h10" stroke="#22d3ee" stroke-width="2" stroke-linecap="round"></path>
+                </svg>
+                Add
+              </button>
+            </div>
+            <div class="hint">Leave “Value” empty to send just the variable name. With a value, it becomes <code>name=value</code>.</div>
+          </div>
+
+          <div class="toolbar" style="margin-top:18px;">
+            <button id="compose" class="btn-primary" type="button">Compose SPARQL</button>
+            <button id="clear" class="btn-ghost" type="button">Clear</button>
+          </div>
+
+          <div id="apiUrl" class="api-url" aria-live="polite"></div>
+          <div id="status" class="status" aria-live="polite"></div>
+
+          <div style="margin-top:12px;">
+            <label>Results</label>
+            <div class="toolbar" style="justify-content: right; margin-top:18px;">
+              <button id="openEndpoint" class="btn-ghost" type="button" disabled>Open in SPARQL endpoint</button>
+            </div>
+            <div id="results" class="results" role="region" aria-label="Query results">Output will appear here.</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Right: SVG Preview -->
+      <section class="card">
+        <h2>Dataset SVG</h2>
+        <div class="content image-box">
+          <div class="toolbar" style="justify-content: right; margin-top: 4px;">
+            <button id="openSvg" class="btn-ghost" type="button">Open SVG</button>
+          </div>
+          <div class="image-frame">
+            <img id="datasetImg" alt="Dataset schema SVG" />
+          </div>
+          <div id="imgCaption" class="caption"></div>
+        </div>
+      </section>
+    </div>
+
+    <p class="footer-note">
+      Note: If you face a CORS error while fetching the API, consider calling it from your server (proxy) instead of the browser.
+    </p>
+  </div>
+
+  <script>
+    const DATASETS = [
+      "bacdive","bgee","biosample","bmrb","brenda","chebi","chembl","chip-atlas","civic","clinvar","dbcatalog",
+      "dbnsfp","dbscsnv","dbsnp","dbvar","ddbj","dgidb","disgenet","ensembl","exac","expressionatlas","famsbase",
+      "ggdonto","glycoepitope","glycosmos","glytoucan","go","gtdb","gwascatalog","hco","hgnc","hint","homologene",
+      "hop","hpo","imethyl","instruct","interview-form","jcm","jpostdb","kero","knapsack","ligandbox","linked_icgc",
+      "mbgd","medgen","mediadive","mesh","mondo","mp","nadd","nando","naro_genebank","nbrc","ncbigene","ncgm","ncit",
+      "nextprot","nikkaji","nlm-catalog","oma","opentggates","paconto","pdb","pgdbj","polyinfo","pubcasefinder",
+      "pubchem","pubmed","pubtator","quanto","reactome","refex","rhea","sra_experiment","ssbd","test","togoid",
+      "togomedium","togovar","uberon","uniprot","vg","wurcs"
+    ];
+
+    const datasetSelect = document.getElementById('dataset');
+    const rowsEl        = document.getElementById('rows');
+    const addRowBtn     = document.getElementById('addRow');
+    const composeBtn    = document.getElementById('compose');
+    const clearBtn      = document.getElementById('clear');
+    const resultsEl     = document.getElementById('results');
+    const apiUrlEl      = document.getElementById('apiUrl');
+    const statusEl      = document.getElementById('status');
+    const imgEl         = document.getElementById('datasetImg');
+    const imgCaptionEl  = document.getElementById('imgCaption');
+
+    // Populate datasets
+    DATASETS.forEach(ds => {
+      const opt = document.createElement('option');
+      opt.value = ds;
+      opt.textContent = ds;
+      datasetSelect.appendChild(opt);
+    });
+    datasetSelect.value = "uniprot";
+
+    function updateImage() {
+      const ds = datasetSelect.value;
+      const src = `/composer/schema/${encodeURIComponent(ds)}.svg`;
+      imgEl.src = src;
+      imgCaptionEl.textContent = src;
+      imgEl.onerror = () => { imgCaptionEl.textContent = "Image not available."; };
+    }
+
+    function makeRow(name="", value="") {
+      const wrap = document.createElement('div');
+      wrap.className = 'row';
+      wrap.innerHTML = `
+        <div>
+          <label>Variable</label>
+          <input type="text" placeholder="e.g. mnemonic" value="${name.replace(/"/g,'&quot;')}" />
+        </div>
+        <div>
+          <label>Value (optional)</label>
+          <input type="text" placeholder="e.g. P53_HUMAN" value="${value.replace(/"/g,'&quot;')}" />
+        </div>
+        <div style="display:flex; gap:8px;">
+          <button type="button" class="btn-ghost btn-remove" title="Remove" aria-label="Remove row">Remove</button>
+        </div>
+      `;
+      wrap.querySelector('.btn-remove').addEventListener('click', () => {
+        wrap.remove();
+      });
+      return wrap;
+    }
+
+    function ensureDefaultRows(n=3) {
+      rowsEl.innerHTML = "";
+      for (let i=0; i<n; i++) rowsEl.appendChild(makeRow());
+    }
+
+    function collectPairs() {
+      const rows = Array.from(rowsEl.querySelectorAll('.row'));
+      const parts = [];
+      for (const row of rows) {
+        const [nameInput, valueInput] = row.querySelectorAll('input');
+        const name = nameInput.value.trim();
+        const value = valueInput.value.trim();
+        if (!name) continue; // skip blank
+        if (value) {
+          // Encode each component; keep commas as separators (not encoded)
+          parts.push(`${encodeURIComponent(name)}=${encodeURIComponent(value)}`);
+        } else {
+          parts.push(encodeURIComponent(name));
+        }
+      }
+      return parts;
+    }
+
+    function buildApiUrl() {
+      const ds = datasetSelect.value;
+      const parts = collectPairs();
+      const list = parts.join(',');
+      // Note: encode dataset segment; variables are already encoded, commas left literal
+      return `/composer/sparql/${encodeURIComponent(ds)}/${list}`;
+    }
+
+    async function callApi() {
+      const ds = datasetSelect.value;
+      const url = buildApiUrl();
+      apiUrlEl.textContent = url || "";
+      statusEl.textContent = "";
+      resultsEl.textContent = "Loading…";
+
+      if (!url.endsWith('/') && url.split('/').pop() === "") {
+        resultsEl.textContent = "Please provide at least one variable.";
+        return;
+      }
+
+      try {
+        const res = await fetch(url, {
+          method: 'GET',
+          headers: { 'Accept': 'text/plain,*/*;q=0.8' },
+          mode: 'cors',
+        });
+        const text = await res.text();
+        if (!res.ok) {
+          statusEl.className = "status err";
+          statusEl.textContent = `HTTP ${res.status} — ${res.statusText}`;
+        } else {
+          statusEl.className = "status ok";
+          statusEl.textContent = "Success";
+        }
+        resultsEl.textContent = text || "(No response body)";
+        updateOpenEndpointAvailability(text);
+      } catch (err) {
+        statusEl.className = "status err";
+        statusEl.textContent = "Network/CORS error — see note below.";
+        resultsEl.textContent = String(err);
+        updateOpenEndpointAvailability("");
+      }
+    }
+
+    function clearAll() {
+      ensureDefaultRows(3);
+      resultsEl.textContent = "Output will appear here.";
+      apiUrlEl.textContent = "";
+      statusEl.textContent = "";
+    }
+
+    // Init
+    ensureDefaultRows(3);
+    updateImage();
+
+    // Events
+    datasetSelect.addEventListener('change', updateImage);
+    addRowBtn.addEventListener('click', () => rowsEl.appendChild(makeRow()));
+    composeBtn.addEventListener('click', callApi);
+    clearBtn.addEventListener('click', clearAll);
+
+    const openSvgBtn = document.getElementById('openSvg');
+    openSvgBtn.addEventListener('click', () => {
+      const ds = datasetSelect.value;
+      const url = `/composer/schema/${encodeURIComponent(ds)}.svg`;
+      window.open(url, '_blank');
+    });
+
+    const openEndpointBtn = document.getElementById('openEndpoint');
+
+    function extractEndpointAndQuery(text) {
+      // Split lines, normalize
+      const lines = String(text || "").replace(/\r\n?/g, "\n").split("\n");
+
+      // Find '# Endpoint: ...' (case-insensitive, allow leading spaces)
+      let endpoint = null;
+      for (const line of lines) {
+        const m = line.match(/^\s*#\s*Endpoint:\s*(\S+)/i);
+        if (m) { endpoint = m[1]; break; }
+      }
+      if (!endpoint) return { ok: false, error: "Endpoint line not found." };
+
+      // Remove comment lines (starting with '#'), keep others verbatim
+      const query = lines
+        .filter(l => !/^\s*#/.test(l))
+        .join("\n")
+        .trim();
+
+      if (!query) return { ok: false, error: "SPARQL body is empty." };
+
+      // Build final URL
+      const url = `${endpoint}?query=${encodeURIComponent(query)}`;
+      return { ok: true, endpoint, query, url };
+    }
+
+    openEndpointBtn.addEventListener('click', () => {
+      const text = resultsEl.textContent;
+      const r = extractEndpointAndQuery(text);
+      if (!r.ok) {
+        statusEl.className = "status err";
+        statusEl.textContent = r.error;
+        return;
+      }
+      // Open in a new tab/window
+      window.open(r.url, '_blank');
+    });
+
+    // Enable/disable the button based on compose results
+    function updateOpenEndpointAvailability(text) {
+      const r = extractEndpointAndQuery(text);
+      openEndpointBtn.disabled = !r.ok;
+    }
+  </script>
+</body>
+</html>
